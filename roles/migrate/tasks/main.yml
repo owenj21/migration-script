@@ -1,0 +1,45 @@
+- name: "Clone high Repo"
+  shell: "git clone https://{{ git_username }}:{{ git_password }}@{{ high_git_url }} current"
+
+- name: "Clone low Repo"
+  shell: "git clone https://{{ git_username }}:{{ git_password }}@{{ low_git_url }} new"
+
+- name: "Delete .git low .git folder"
+  shell: "rm -rf {{ playbook_dir }}/new/.git"
+
+- name: "Get all files/subdirectories"
+  find:
+    paths: "{{ playbook_dir }}/new"
+    recurse: yes
+  register: findFiles
+
+- name: "Perform replacements"
+  replace:
+    path: "{{ item[0].path }}"
+    regexp: "{{ item[1].split(':')[0] }}"
+    replace: "{{ item[1].split(':')[1]  }}"
+  with_nested:
+    - "{{ findFiles.files }}"
+    - "{{ replacements }}"
+
+- name: "Restore .git folder"
+  shell: "mkdir {{ playbook_dir }}/new/.git/ && cp -rf {{ playbook_dir }}/current/.git/* {{playbook_dir }}/new/.git/"
+
+- name: "Add changes to git"
+  shell: "cd {{ playbook_dir }}/new && git add ."
+
+- name: "Locally commit changes"
+  shell: "cd {{ playbook_dir }}/new && git commit -m 'Automatic low => high port'"
+
+- name: "Push to high"
+  shell: "cd {{ playbook_dir }}/new && git push origin master"
+
+- name: "Clean old local repo"
+  file:
+    state: absent
+    path: "{{ playbook_dir }}/current/"
+
+- name: "Clean new local repo"
+  file:
+    state: absent
+    path: "{{ playbook_dir }}/new/"

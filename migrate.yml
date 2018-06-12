@@ -1,0 +1,6 @@
+- name: "Migrating lowstack to highstack"
+  hosts: localhost
+  vars_files:
+      - roles/migrate/defaults/bitbucket.yml
+  roles:
+  - migrate
